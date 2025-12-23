@@ -1,19 +1,19 @@
+import dotenv from 'dotenv';
+// Load environment variables immediately
+dotenv.config();
+
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
 import path from 'path';
 import { createServer } from 'http';
 import { chatRoutes } from './routes';
 import authRoutes from './routes/authRoutes';
 import { logger } from './utils/logger';
 import { apiCallLogger } from './middleware/apiCallLogger';
-import { WebSocketService } from './services/webSocketService';
+import { WebSocketService } from './services';
 import { AuthService } from './services/authService';
-
-// Load environment variables
-dotenv.config();
 
 const app = express();
 const server = createServer(app);

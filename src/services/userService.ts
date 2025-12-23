@@ -1,6 +1,7 @@
 import { UserDao, CreateUser, UpdateUser } from '../dao/userDao';
 import { SelectUser } from '../db/schema';
 import { logger } from '../utils/logger';
+import { AuthService } from './authService';
 
 export class UserService {
   /**
@@ -15,7 +16,14 @@ export class UserService {
         throw new Error('User with this email already exists');
       }
 
-      const user = await UserDao.create(userData);
+      // Hash the password before saving
+      const hashedPassword = await AuthService.hashPassword(userData.password);
+      const userToCreate = {
+        ...userData,
+        password: hashedPassword,
+      };
+
+      const user = await UserDao.create(userToCreate);
       if (user) {
         logger.info(`User service: Created user ${user.email}`);
       }
@@ -47,7 +55,13 @@ export class UserService {
         }
       }
 
-      const updatedUser = await UserDao.update(id, userData);
+      // If password is being updated, hash it
+      const dataToUpdate = { ...userData };
+      if (userData.password) {
+        dataToUpdate.password = await AuthService.hashPassword(userData.password);
+      }
+
+      const updatedUser = await UserDao.update(id, dataToUpdate);
       if (updatedUser) {
         logger.info(`User service: Updated user ${id}`);
       }
