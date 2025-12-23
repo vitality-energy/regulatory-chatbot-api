@@ -1,5 +1,19 @@
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { db } from './config';
+import { config } from 'dotenv';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/postgres-js';
+
+// Load environment variables
+config();
+
+const databaseUrl = process.env['DATABASE_URL'];
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is not set');
+}
+
+const migrationClient = postgres(databaseUrl, { max: 1 });
+const db = drizzle(migrationClient);
+
 import { logger } from '../utils/logger';
 
 export async function runMigrations() {
@@ -20,12 +34,14 @@ export async function runMigrations() {
 // Run migrations if this file is executed directly
 if (require.main === module) {
   runMigrations()
-    .then(() => {
+    .then(async () => {
       logger.info('Migration script completed');
+      await migrationClient.end();
       process.exit(0);
     })
-    .catch((error) => {
+    .catch(async (error) => {
       logger.error('Migration script failed:', error);
+      await migrationClient.end();
       process.exit(1);
     });
-} 
+}
