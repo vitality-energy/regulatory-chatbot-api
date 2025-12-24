@@ -89,9 +89,29 @@ app.use(express.urlencoded({ extended: true }));
 app.use(apiCallLogger);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+  let dbStatus = 'unknown';
+  try {
+    const { pool } = await import('./db/config');
+    await pool.query('SELECT 1');
+    dbStatus = 'connected';
+  } catch (error) {
+    logger.error('Healthcheck: Database connection failed', error);
+    dbStatus = 'disconnected';
+  }
+
+  const healthData = {
+    status: dbStatus === 'connected' ? 'OK' : 'DEGRADED',
+    timestamp: new Date().toISOString(),
+    database: dbStatus,
+    memory: process.memoryUsage(),
+    uptime: process.uptime(),
+    version: process.env.npm_package_version || '1.0.0'
+  };
+
+  res.status(healthData.status === 'OK' ? 200 : 503).json(healthData);
 });
+
 app.get('/api/status', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });

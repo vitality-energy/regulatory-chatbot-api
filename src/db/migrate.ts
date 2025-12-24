@@ -11,7 +11,7 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL is not set');
 }
 
-const migrationClient = postgres(databaseUrl, { max: 1 });
+const migrationClient = postgres(databaseUrl, { max: 1, ssl: 'require' });
 const db = drizzle(migrationClient);
 
 import { logger } from '../utils/logger';

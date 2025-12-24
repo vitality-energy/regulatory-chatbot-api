@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:24-slim AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ COPY . .
 RUN npm run clean && npx tsc
 
 # Stage 2: Production
-FROM node:18-slim
+FROM node:24-alpine
 
 WORKDIR /app
 
