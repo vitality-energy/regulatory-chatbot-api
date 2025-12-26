@@ -2,6 +2,7 @@ import { eq, desc, count, and, gte, lte } from 'drizzle-orm';
 import { db } from '../db/config';
 import { apiCalls, CreateApiCall, UpdateApiCall, SelectApiCall } from '../db/schema';
 import { logger } from '../utils/logger';
+import { randomUUID } from 'crypto';
 
 export class ApiCallDao {
   /**
@@ -9,9 +10,17 @@ export class ApiCallDao {
    */
   static async create(data: CreateApiCall): Promise<SelectApiCall | null> {
     try {
-      const [result] = await db.insert(apiCalls).values(data).returning();
+      const id = randomUUID();
+      const newApiCall = {
+        ...data,
+        id,
+        timestamp: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await db.insert(apiCalls).values(newApiCall);
       logger.info(`API call logged: ${data.endpoint} - ${data.statusCode}`);
-      return result;
+      return newApiCall as SelectApiCall;
     } catch (error) {
       logger.error('Failed to create API call record:', error);
       return null;
@@ -23,14 +32,15 @@ export class ApiCallDao {
    */
   static async update(id: string, data: UpdateApiCall): Promise<SelectApiCall | null> {
     try {
-      const [result] = await db
+      const updatedAt = new Date();
+      await db
         .update(apiCalls)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(apiCalls.id, id))
-        .returning();
+        .set({ ...data, updatedAt })
+        .where(eq(apiCalls.id, id));
       
+      const updatedApiCall = await this.findById(id);
       logger.info(`API call updated: ${id}`);
-      return result;
+      return updatedApiCall;
     } catch (error) {
       logger.error('Failed to update API call record:', error);
       return null;
@@ -60,14 +70,12 @@ export class ApiCallDao {
    */
   static async findRecent(limit: number = 50, offset: number = 0): Promise<SelectApiCall[]> {
     try {
-      const result = await db
+      return await db
         .select()
         .from(apiCalls)
         .orderBy(desc(apiCalls.timestamp))
         .limit(limit)
         .offset(offset);
-      
-      return result;
     } catch (error) {
       logger.error('Failed to get recent API calls:', error);
       return [];
@@ -150,12 +158,12 @@ export class ApiCallDao {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
 
-      const result = await db
+      const [result] = await db
         .delete(apiCalls)
-        .where(lte(apiCalls.timestamp, cutoffDate));
+        .where(lte(apiCalls.timestamp, cutoffDate)) as any;
 
-      logger.info(`Cleaned up ${result.rowCount} old API call records`);
-      return result.rowCount || 0;
+      logger.info(`Cleaned up ${result.affectedRows} old API call records`);
+      return result.affectedRows || 0;
     } catch (error) {
       logger.error('Failed to cleanup old API call records:', error);
       return 0;

@@ -33,11 +33,32 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     // Verify token
     const decoded = AuthService.verifyToken(token);
     
+    // Extract user info, preferring standard claims or custom ones
+    const userId = decoded.userId || decoded.sub;
+    
+    if (!userId) {
+      throw new Error('User ID not found in token');
+    }
+
+    const fullUser = await AuthService.findUserById(userId);
+    
+    if (!fullUser) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not found in database'
+      });
+    }
+    
+    // Generate a fallback session ID if not present in token
+    // This allows us to have a stable identifier for this specific token
+    const sessionId = decoded.sessionId || decoded.jti || 
+      token.split('.').pop()?.substring(0, 16) || 'anonymous';
+    
     // Add user info to request
     req.user = {
-      userId: decoded.userId,
-      email: decoded.email,
-      sessionId: decoded.sessionId,
+      userId,
+      email: fullUser.email,
+      sessionId
     };
 
     return next();
@@ -59,12 +80,23 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
     const token = authHeader && authHeader.split(' ')[1];
 
     if (token) {
-      const decoded = AuthService.verifyToken(token);
-      req.user = {
-        userId: decoded.userId,
-        email: decoded.email,
-        sessionId: decoded.sessionId,
-      };
+      try {
+        const decoded = AuthService.verifyToken(token);
+        const userId = decoded.userId || decoded.sub;
+        
+        if (userId) {
+          const sessionId = decoded.sessionId || decoded.jti || 
+            token.split('.').pop()?.substring(0, 16) || 'anonymous';
+            
+          req.user = {
+            userId,
+            email: decoded.email || '',
+            sessionId,
+          };
+        }
+      } catch (e) {
+        // Ignore invalid tokens in optional auth
+      }
     }
 
     next();

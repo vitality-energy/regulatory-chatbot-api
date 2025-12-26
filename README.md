@@ -7,7 +7,7 @@ This is the backend server for the Vitality AI application, built with Node.js, 
 Before you begin, ensure you have the following installed:
 - [Node.js](https://nodejs.org/) (v18.0.0 or higher)
 - [npm](https://www.npmjs.com/)
-- [PostgreSQL](https://www.postgresql.org/) (or a [Neon](https://neon.tech/) database)
+- [MySQL](https://www.mysql.com/) or [MariaDB](https://mariadb.org/) (v8.0+ recommended for UUID support)
 
 ## Getting Started
 
@@ -29,15 +29,19 @@ cp env.example .env
 ```
 
 Open the `.env` file and fill in your configuration:
-- `DATABASE_URL`: Your PostgreSQL connection string.
-- `JWT_SECRET`: A secret key for JWT authentication.
+- `DATABASE_URL`: Your MySQL connection string (e.g., `mysql://user:pass@localhost:3306/db_name`).
+- `JWT_SECRET`: The shared secret key used to verify externally generated JWTs.
 - `OPENAI_API_KEY`: Your OpenAI API key.
 - `ASSISTANT_PROMPT_ID`: The ID for your OpenAI assistant prompt.
 - `RESEARCH_PROMPT_ID`: The ID for your research prompt.
 
 ### 3. Database Setup
 
-The project uses Drizzle ORM for database management. Run the following commands to set up your database:
+The project uses Drizzle ORM for database management. It is designed to work alongside an existing Rails application.
+
+**Important:** The `users` table is managed externally (e.g., by Rails). This application only manages its own tables (`api_calls`, `messages`).
+
+Run the following commands to set up the application-specific tables:
 
 ```bash
 # Generate migrations based on your schema
@@ -102,9 +106,28 @@ docker run -p 3001:3001 --env-file .env vitality-backend
 ## Project Structure
 
 - `src/server.ts`: Entry point of the application.
-- `src/db/`: Database schema and migrations.
+- `src/db/`: Database schema, migrations, and external table definitions.
+- `src/db/schema.ts`: Internal tables managed by this app.
+- `src/db/external_schema.ts`: Definitions for tables managed by other applications (e.g., Rails `users`).
 - `src/routes/`: API route definitions.
 - `src/services/`: Business logic.
 - `src/dao/`: Data Access Objects for database interactions.
 - `src/middleware/`: Express middleware.
 - `src/utils/`: Utility functions and logger.
+
+## Authentication
+
+This application does not handle user registration or login. It expects a JWT in the `Authorization` header:
+`Authorization: Bearer <token>`
+
+The JWT must be signed with the same `JWT_SECRET` configured in this application and should contain:
+- `userId` (or `sub`): The ID of the user in the shared database.
+- `email`: The user's email address.
+- `sessionId` (or `jti`): (Optional) A unique session identifier.
+
+**Note on Session IDs:** If the JWT does not provide a `sessionId` or `jti` claim, the application will automatically generate a stable session ID based on the JWT's signature. This ensures that every authenticated request has a `sessionId` for tracking and WebSocket room management.
+
+### Auth Endpoints
+
+- `GET /api/auth/me`: Returns the currently logged-in user's details, token, and sessionId.
+- `GET /api/auth/verify`: Simple endpoint to verify if a token is valid.

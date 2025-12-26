@@ -1,22 +1,21 @@
 import { config } from 'dotenv';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import postgres from 'postgres';
-import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/mysql2/migrator';
+import mysql from 'mysql2/promise';
+import { drizzle } from 'drizzle-orm/mysql2';
+import { logger } from '../utils/logger';
 
 // Load environment variables
 config();
 
-const databaseUrl = process.env['DATABASE_URL'];
+const databaseUrl = process.env['DATABASE_URL'] || '';
 if (!databaseUrl) {
   throw new Error('DATABASE_URL is not set');
 }
 
-const migrationClient = postgres(databaseUrl, { max: 1, ssl: 'require' });
-const db = drizzle(migrationClient);
-
-import { logger } from '../utils/logger';
-
 export async function runMigrations() {
+  const migrationConnection = await mysql.createConnection(databaseUrl);
+  const db = drizzle(migrationConnection);
+
   try {
     logger.info('Starting database migrations...');
     
@@ -28,20 +27,20 @@ export async function runMigrations() {
   } catch (error) {
     logger.error('Database migration failed:', error);
     throw error;
+  } finally {
+    await migrationConnection.end();
   }
 }
 
 // Run migrations if this file is executed directly
 if (require.main === module) {
   runMigrations()
-    .then(async () => {
+    .then(() => {
       logger.info('Migration script completed');
-      await migrationClient.end();
       process.exit(0);
     })
-    .catch(async (error) => {
+    .catch((error) => {
       logger.error('Migration script failed:', error);
-      await migrationClient.end();
       process.exit(1);
     });
 }

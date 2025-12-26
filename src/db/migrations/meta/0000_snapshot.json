@@ -1,216 +1,252 @@
 {
-  "id": "52ef7e83-d8c6-45a3-900a-fa4e0d11910f",
+  "version": "5",
+  "dialect": "mysql",
+  "id": "77c9617d-fd7a-4950-8b0a-e6e26c8825f5",
   "prevId": "00000000-0000-0000-0000-000000000000",
-  "version": "7",
-  "dialect": "postgresql",
   "tables": {
-    "public.api_calls": {
+    "api_calls": {
       "name": "api_calls",
-      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
+          "type": "varchar(36)",
+          "primaryKey": false,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "autoincrement": false,
+          "default": "(UUID())"
         },
         "endpoint": {
           "name": "endpoint",
           "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "method": {
           "name": "method",
           "type": "varchar(10)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "user_agent": {
           "name": "user_agent",
           "type": "varchar(500)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "ip_address": {
           "name": "ip_address",
           "type": "varchar(45)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "request_payload": {
           "name": "request_payload",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "response_payload": {
           "name": "response_payload",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "request_size": {
           "name": "request_size",
-          "type": "integer",
+          "type": "int",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "response_size": {
           "name": "response_size",
-          "type": "integer",
+          "type": "int",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "duration": {
           "name": "duration",
-          "type": "integer",
+          "type": "int",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "timestamp": {
           "name": "timestamp",
-          "type": "timestamp",
+          "type": "datetime",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
         },
         "status_code": {
           "name": "status_code",
-          "type": "integer",
+          "type": "int",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "success": {
           "name": "success",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "error_message": {
           "name": "error_message",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "datetime",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp",
+          "type": "datetime",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
         }
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "api_calls_id": {
+          "name": "api_calls_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.messages": {
+    "messages": {
       "name": "messages",
-      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
+          "type": "varchar(36)",
+          "primaryKey": false,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "autoincrement": false,
+          "default": "(UUID())"
         },
         "message_id": {
           "name": "message_id",
           "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "type": {
           "name": "type",
           "type": "varchar(20)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "content": {
           "name": "content",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "metadata": {
           "name": "metadata",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false,
+          "default": "('{}')"
         },
         "research_results": {
           "name": "research_results",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false,
+          "default": "('{}')"
         },
         "session_id": {
           "name": "session_id",
           "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false,
+          "default": "''"
         },
         "user_id": {
           "name": "user_id",
           "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false,
+          "default": "''"
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "datetime",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "timestamp",
+          "type": "datetime",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
         }
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "messages_id": {
+          "name": "messages_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {
         "messages_message_id_unique": {
           "name": "messages_message_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "message_id"
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     }
   },
-  "enums": {},
-  "schemas": {},
-  "sequences": {},
-  "roles": {},
-  "policies": {},
   "views": {},
   "_meta": {
-    "columns": {},
     "schemas": {},
-    "tables": {}
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "tables": {},
+    "indexes": {}
   }
 }

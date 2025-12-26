@@ -1,7 +1,8 @@
-import { eq, desc, count, and, gte, lte } from 'drizzle-orm';
+import { eq, desc, lte } from 'drizzle-orm';
 import { db } from './config';
-import { apiCalls, CreateApiCall, UpdateApiCall, SelectApiCall, messages, CreateMessage, UpdateMessage, SelectMessage } from './schema';
+import { apiCalls, CreateApiCall, UpdateApiCall, SelectApiCall, messages, SelectMessage } from './schema';
 import { logger } from '../utils/logger';
+import { randomUUID } from 'crypto';
 
 export class ApiCallService {
   /**
@@ -9,9 +10,17 @@ export class ApiCallService {
    */
   static async logApiCall(data: CreateApiCall): Promise<SelectApiCall | null> {
     try {
-      const [result] = await db.insert(apiCalls).values(data).returning();
+      const id = randomUUID();
+      const newApiCall = {
+        ...data,
+        id,
+        timestamp: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await db.insert(apiCalls).values(newApiCall);
       logger.info(`API call logged: ${data.endpoint} - ${data.statusCode}`);
-      return result;
+      return newApiCall as SelectApiCall;
     } catch (error) {
       logger.error('Failed to log API call:', error);
       return null;
@@ -23,14 +32,15 @@ export class ApiCallService {
    */
   static async updateApiCall(id: string, data: UpdateApiCall): Promise<SelectApiCall | null> {
     try {
-      const [result] = await db
+      const updatedAt = new Date();
+      await db
         .update(apiCalls)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(apiCalls.id, id))
-        .returning();
+        .set({ ...data, updatedAt })
+        .where(eq(apiCalls.id, id));
       
+      const updatedApiCall = await this.getApiCall(id);
       logger.info(`API call updated: ${id}`);
-      return result;
+      return updatedApiCall;
     } catch (error) {
       logger.error('Failed to update API call:', error);
       return null;
@@ -65,12 +75,12 @@ export class ApiCallService {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
 
-      const result = await db
+      const [result] = await db
         .delete(apiCalls)
-        .where(lte(apiCalls.timestamp, cutoffDate));
+        .where(lte(apiCalls.timestamp, cutoffDate)) as any;
 
-      logger.info(`Cleaned up ${result.rowCount} old API call records`);
-      return result.rowCount || 0;
+      logger.info(`Cleaned up ${result.affectedRows} old API call records`);
+      return result.affectedRows || 0;
     } catch (error) {
       logger.error('Failed to cleanup old API call records:', error);
       return 0;
@@ -89,17 +99,21 @@ export class MessageService {
     userId?: string
   ): Promise<SelectMessage | null> {
     try {
-      const messageData: CreateMessage = {
+      const id = randomUUID();
+      const messageData = {
+        id,
         messageId,
         type: 'user',
         content,
         sessionId,
         userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
-      const [result] = await db.insert(messages).values(messageData).returning();
+      await db.insert(messages).values(messageData);
       logger.info(`User message saved: ${messageId}`);
-      return result;
+      return messageData as SelectMessage;
     } catch (error) {
       logger.error('Failed to save user message:', error);
       return null;
@@ -117,18 +131,22 @@ export class MessageService {
     userId?: string
   ): Promise<SelectMessage | null> {
     try {
-      const messageData: CreateMessage = {
+      const id = randomUUID();
+      const messageData = {
+        id,
         messageId,
         type: 'bot',
         content,
         metadata,
         sessionId,
         userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
-      const [result] = await db.insert(messages).values(messageData).returning();
+      await db.insert(messages).values(messageData);
       logger.info(`Bot message saved: ${messageId}`);
-      return result;
+      return messageData as SelectMessage;
     } catch (error) {
       logger.error('Failed to save bot message:', error);
       return null;
@@ -143,17 +161,18 @@ export class MessageService {
     researchResults: any
   ): Promise<SelectMessage | null> {
     try {
-      const [result] = await db
+      const updatedAt = new Date();
+      await db
         .update(messages)
         .set({ 
           researchResults,
-          updatedAt: new Date() 
+          updatedAt
         })
-        .where(eq(messages.messageId, messageId))
-        .returning();
+        .where(eq(messages.messageId, messageId));
 
+      const updatedMessage = await this.getMessageByMessageId(messageId);
       logger.info(`Bot message updated with research: ${messageId}`);
-      return result;
+      return updatedMessage;
     } catch (error) {
       logger.error('Failed to update bot message with research:', error);
       return null;
@@ -183,14 +202,12 @@ export class MessageService {
    */
   static async getMessagesBySessionId(sessionId: string, limit: number = 50): Promise<SelectMessage[]> {
     try {
-      const result = await db
+      return await db
         .select()
         .from(messages)
         .where(eq(messages.sessionId, sessionId))
         .orderBy(desc(messages.createdAt))
         .limit(limit);
-
-      return result;
     } catch (error) {
       logger.error('Failed to get messages by session ID:', error);
       return [];
@@ -205,14 +222,12 @@ export class MessageService {
     offset: number = 0
   ): Promise<SelectMessage[]> {
     try {
-      const result = await db
+      return await db
         .select()
         .from(messages)
         .orderBy(desc(messages.createdAt))
         .limit(limit)
         .offset(offset);
-
-      return result;
     } catch (error) {
       logger.error('Failed to get recent messages:', error);
       return [];
@@ -227,8 +242,8 @@ export const extractRequestInfo = (req: any) => {
   return {
     userAgent: req.get('User-Agent') || undefined,
     ipAddress: req.ip || req.connection.remoteAddress || undefined,
-    sessionId: req.session?.id || undefined,
-    userId: req.user?.id || undefined,
+    sessionId: req.user?.sessionId || undefined,
+    userId: req.user?.userId || undefined,
   };
 };
 

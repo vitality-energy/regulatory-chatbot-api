@@ -5,8 +5,8 @@ export const extractRequestInfo = (req: any) => {
   return {
     userAgent: req.get('User-Agent') || undefined,
     ipAddress: req.ip || req.connection?.remoteAddress || undefined,
-    sessionId: req.session?.id || undefined,
-    userId: req.user?.id || undefined,
+    sessionId: req.user?.sessionId || undefined,
+    userId: req.user?.userId || undefined,
   };
 };
 

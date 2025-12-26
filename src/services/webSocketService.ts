@@ -1,6 +1,5 @@
 import WebSocket from 'ws';
 import { Server } from 'http';
-import jwt from 'jsonwebtoken';
 import { logger } from '../utils/logger';
 import { ChatService, ChatRequest } from './chatService';
 import { getResearchResult } from '../utils/researchHelper';
@@ -59,14 +58,13 @@ export class WebSocketService {
 
   private async authenticateConnection(ws: AuthenticatedWebSocket, token: string): Promise<boolean> {
     try {
-      if (!process.env.JWT_SECRET) {
-        logger.error('JWT_SECRET not configured');
-        return false;
-      }
-
-      const decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
-      ws.userId = decoded.userId;
-      ws.sessionId = decoded.sessionId; // Use the actual sessionId from JWT token
+      const decoded = AuthService.verifyToken(token);
+      ws.userId = decoded.userId || decoded.sub;
+      
+      // Use sessionId from token, fallback to jti or a portion of the token signature
+      ws.sessionId = decoded.sessionId || decoded.jti || 
+        token.split('.').pop()?.substring(0, 16) || 'anonymous';
+        
       ws.roomId = `room_${ws.userId}`;
       ws.isAuthenticated = true;
       ws.conversationHistory = [];
@@ -88,7 +86,7 @@ export class WebSocketService {
     }
   }
 
-  private handleConnection(ws: AuthenticatedWebSocket, request: any) {
+  private handleConnection(ws: AuthenticatedWebSocket, _request: any) {
     ws.isAuthenticated = false;
     ws.conversationHistory = [];
     
@@ -206,7 +204,7 @@ export class WebSocketService {
       );
 
       // Add assistant response to conversation history
-      const responseContent = typeof response.response === 'string' 
+      const responseContent = typeof response.response === 'string'
         ? response.response 
         : response.response.response;
       
@@ -502,7 +500,7 @@ export class WebSocketService {
   }
 
   // Close specific session (called when session is invalidated)
-  public closeSession(sessionId: string, reason: string = 'Session invalidated', skipAuthServiceLogout: boolean = false) {
+  public closeSession(sessionId: string, reason: string = 'Session invalidated') {
     const client = this.clients.get(sessionId);
     console.log('closing session', sessionId, client);
     
@@ -520,11 +518,6 @@ export class WebSocketService {
         client.close();
         logger.info(`Closed WebSocket session ${sessionId}: ${reason}`);
       }, 100);
-    }
-    
-    // Logout the user from AuthService (avoid circular calls)
-    if (!skipAuthServiceLogout) {
-      AuthService.logout(sessionId);
     }
   }
 

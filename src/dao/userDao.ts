@@ -1,45 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db/config';
-import { users, SelectUser, InsertUser } from '../db/schema';
+import { users, SelectUser } from '../db/external_schema';
 import { logger } from '../utils/logger';
 
-export type CreateUser = Omit<InsertUser, 'id' | 'createdAt' | 'updatedAt'>;
-export type UpdateUser = Partial<Omit<InsertUser, 'id' | 'createdAt'>>;
-
 export class UserDao {
-  /**
-   * Create a new user
-   */
-  static async create(data: CreateUser): Promise<SelectUser | null> {
-    try {
-      const [result] = await db.insert(users).values(data).returning();
-      logger.info(`User created: ${result.email}`);
-      return result;
-    } catch (error) {
-      logger.error('Failed to create user:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Update a user
-   */
-  static async update(id: string, data: UpdateUser): Promise<SelectUser | null> {
-    try {
-      const [result] = await db
-        .update(users)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(users.id, id))
-        .returning();
-
-      logger.info(`User updated: ${id}`);
-      return result;
-    } catch (error) {
-      logger.error('Failed to update user:', error);
-      return null;
-    }
-  }
-
   /**
    * Find user by ID
    */
@@ -63,20 +27,6 @@ export class UserDao {
     } catch (error) {
       logger.error('Failed to find user by email:', error);
       throw new Error('Database error');
-    }
-  }
-
-  /**
-   * Delete a user
-   */
-  static async deleteById(id: string): Promise<boolean> {
-    try {
-      const result = await db.delete(users).where(eq(users.id, id));
-      logger.info(`User deleted: ${id}`);
-      return result.rowCount ? result.rowCount > 0 : false;
-    } catch (error) {
-      logger.error('Failed to delete user:', error);
-      return false;
     }
   }
 

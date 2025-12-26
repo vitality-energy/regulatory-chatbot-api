@@ -5,21 +5,15 @@ import { authenticateToken } from '../middleware/authMiddleware';
 const router = Router();
 
 /**
- * POST /auth/login
- * Login with email and password
- */
-router.post('/login', AuthController.login);
-
-/**
  * GET /auth/verify
  * Verify if current token is valid (requires authentication)
  */
 router.get('/verify', authenticateToken, AuthController.verifyToken);
 
 /**
- * POST /auth/logout
- * Logout current session (requires authentication)
+ * GET /auth/me
+ * Get currently logged in user details
  */
-router.post('/logout', authenticateToken, AuthController.logout);
+router.get('/me', authenticateToken, AuthController.me);
 
-export default router; 
+export default router;

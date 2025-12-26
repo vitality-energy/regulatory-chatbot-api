@@ -2,6 +2,7 @@ import { eq, desc } from 'drizzle-orm';
 import { db } from '../db/config';
 import { messages, CreateMessage, UpdateMessage, SelectMessage } from '../db/schema';
 import { logger } from '../utils/logger';
+import { randomUUID } from 'crypto';
 
 export class MessageDao {
   /**
@@ -9,9 +10,16 @@ export class MessageDao {
    */
   static async create(data: CreateMessage): Promise<SelectMessage | null> {
     try {
-      const [result] = await db.insert(messages).values(data).returning();
+      const id = randomUUID();
+      const newMessage = {
+        ...data,
+        id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await db.insert(messages).values(newMessage);
       logger.info(`Message saved: ${data.messageId} (${data.type})`);
-      return result;
+      return newMessage as SelectMessage;
     } catch (error) {
       logger.error('Failed to create message:', error);
       return null;
@@ -23,14 +31,15 @@ export class MessageDao {
    */
   static async update(id: string, data: UpdateMessage): Promise<SelectMessage | null> {
     try {
-      const [result] = await db
+      const updatedAt = new Date();
+      await db
         .update(messages)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(messages.id, id))
-        .returning();
+        .set({ ...data, updatedAt })
+        .where(eq(messages.id, id));
 
+      const updatedMessage = await this.findById(id);
       logger.info(`Message updated: ${id}`);
-      return result;
+      return updatedMessage;
     } catch (error) {
       logger.error('Failed to update message:', error);
       return null;
@@ -42,14 +51,15 @@ export class MessageDao {
    */
   static async updateByMessageId(messageId: string, data: UpdateMessage): Promise<SelectMessage | null> {
     try {
-      const [result] = await db
+      const updatedAt = new Date();
+      await db
         .update(messages)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(messages.messageId, messageId))
-        .returning();
+        .set({ ...data, updatedAt })
+        .where(eq(messages.messageId, messageId));
 
+      const updatedMessage = await this.findByMessageId(messageId);
       logger.info(`Message updated by messageId: ${messageId}`);
-      return result;
+      return updatedMessage;
     } catch (error) {
       logger.error('Failed to update message by messageId:', error);
       return null;
@@ -97,14 +107,12 @@ export class MessageDao {
    */
   static async findBySessionId(sessionId: string, limit: number = 50): Promise<SelectMessage[]> {
     try {
-      const result = await db
+      return await db
         .select()
         .from(messages)
         .where(eq(messages.sessionId, sessionId))
         .orderBy(desc(messages.createdAt))
         .limit(limit);
-
-      return result;
     } catch (error) {
       logger.error('Failed to get messages by session ID:', error);
       return [];
@@ -116,14 +124,12 @@ export class MessageDao {
    */
   static async findByUserId(userId: string, limit: number = 50): Promise<SelectMessage[]> {
     try {
-      const result = await db
+      return await db
         .select()
         .from(messages)
         .where(eq(messages.userId, userId))
         .orderBy(desc(messages.createdAt))
         .limit(limit);
-
-      return result;
     } catch (error) {
       logger.error('Failed to get messages by user ID:', error);
       return [];
@@ -135,14 +141,12 @@ export class MessageDao {
    */
   static async findRecent(limit: number = 50, offset: number = 0): Promise<SelectMessage[]> {
     try {
-      const result = await db
+      return await db
         .select()
         .from(messages)
         .orderBy(desc(messages.createdAt))
         .limit(limit)
         .offset(offset);
-
-      return result;
     } catch (error) {
       logger.error('Failed to get recent messages:', error);
       return [];
@@ -154,11 +158,11 @@ export class MessageDao {
    */
   static async deleteById(id: string): Promise<boolean> {
     try {
-      const result = await db
+      const [result] = await db
         .delete(messages)
-        .where(eq(messages.id, id));
+        .where(eq(messages.id, id)) as any;
 
-      return (result.rowCount || 0) > 0;
+      return (result.affectedRows || 0) > 0;
     } catch (error) {
       logger.error('Failed to delete message:', error);
       return false;
