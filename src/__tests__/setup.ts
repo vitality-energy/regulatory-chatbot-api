@@ -18,7 +18,6 @@ global.console = {
 // Mock external dependencies
 jest.mock('ws');
 jest.mock('openai');
-jest.mock('bcryptjs');
 jest.mock('jsonwebtoken');
 
 // Mock database connection
@@ -50,11 +49,8 @@ jest.mock('../dao', () => ({
     deleteOlder: jest.fn(),
   },
   UserDao: {
-    create: jest.fn(),
-    update: jest.fn(),
     findById: jest.fn(),
     findByEmail: jest.fn(),
-    deleteById: jest.fn(),
     existsByEmail: jest.fn(),
   },
 }));
