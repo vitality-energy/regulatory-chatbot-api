@@ -1,0 +1,1 @@
+ALTER TABLE `messages` ADD `session_id` varchar(255) DEFAULT '';
